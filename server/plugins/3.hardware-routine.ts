@@ -2,6 +2,7 @@ import hardwareConfig from "#utils/hardware-configuration";
 import { DateTime } from "luxon";
 import { SharedState } from "./2.socket-shared-state";
 import { Gpio, I2C, Level, Mode } from "@okee-tech/rppal";
+import { Mutex } from "async-mutex";
 
 const gpio = new Gpio();
 const hvEnablePin = gpio.get(hardwareConfig.hvEnablePin);
@@ -9,8 +10,13 @@ const shockOutputPin = gpio.get(hardwareConfig.shockOuputPin);
 const hvI2cPot = new I2C(hardwareConfig.i2cPotBus);
 hvEnablePin.mode = Mode.Output;
 shockOutputPin.mode = Mode.Output;
+const shockMutex = new Mutex();
+let isShockActive: SharedState<boolean>;
 
 async function doShockAnimation() {
+  const lockGuard = await shockMutex.acquire();
+  isShockActive.state = true;
+
   console.log("Starting shock animation");
 
   hvEnablePin.value = Level.High;
@@ -21,6 +27,9 @@ async function doShockAnimation() {
 
   hvEnablePin.value = Level.Low;
   shockOutputPin.clearPwm();
+
+  lockGuard();
+  isShockActive.state = false;
 }
 
 const scheduleTimeouts: Map<string, NodeJS.Timeout> = new Map();
@@ -62,11 +71,23 @@ async function onScheduleUpdate(
   }
 }
 
-async function onShockPowerUpdate(state: ShockPowerState) {
+async function onShockPowerUpdate(
+  originalState: SharedState<ShockPowerState>,
+  state: ShockPowerState
+) {
   const newPotValue = Math.round(state.power * 255) & 0xff;
 
   console.log(`Setting pot value to ${newPotValue}`);
   await hvI2cPot.write(hardwareConfig.i2cPotAddress, [0x00, newPotValue]);
+
+  if (state.isTesting) {
+    console.log("Testing shock power");
+    await doShockAnimation();
+    setTimeout(() => {
+      console.log("Finishing test shock");
+      originalState.state = { ...state, isTesting: false };
+    }, 1000);
+  }
 }
 
 async function hardwareRoutine() {
@@ -78,11 +99,14 @@ async function hardwareRoutine() {
     power: 0.1,
     isTesting: false,
   });
+  isShockActive = SharedState.get<boolean>(`isShockActive`, false);
 
   registeredSchedules.on("update", (newState) =>
     onScheduleUpdate(registeredSchedules, newState)
   );
-  shockPowerState.on("update", (newState) => onShockPowerUpdate(newState));
+  shockPowerState.on("update", (newState) =>
+    onShockPowerUpdate(shockPowerState, newState)
+  );
 }
 
 export default defineNitroPlugin(hardwareRoutine);

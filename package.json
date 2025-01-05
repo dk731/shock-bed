@@ -13,15 +13,16 @@
     "@okee-tech/rppal": "^0.1.10",
     "@vueuse/core": "^12.3.0",
     "@vueuse/nuxt": "^12.3.0",
+    "async-mutex": "^0.5.0",
     "eslint": "^9.17.0",
+    "luxon": "^3.5.0",
     "neverthrow": "^8.1.1",
     "nuxt": "^3.15.1",
     "radix-vue": "^1.9.12",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "vue": "latest",
-    "vue-router": "latest",
-    "luxon": "^3.5.0"
+    "vue-router": "latest"
   },
   "devDependencies": {
     "@iconify/json": "^2.2.292",

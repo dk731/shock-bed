@@ -6,13 +6,7 @@ const shockPower = useSocketState<ShockPowerState>(`shockPower`, {
 </script>
 
 <template>
-  <div
-    class="grid grid-cols-2 place-items-center p-4 rounded"
-    :class="{
-      'animate-[pulse_1s_ease-in-out_infinite] border-2 border-warning':
-        shockPower.state.value?.isTesting,
-    }"
-  >
+  <div class="grid grid-cols-2 place-items-center p-4 rounded">
     <template v-if="shockPower.state.value !== undefined">
       <div class="w-full flex flex-col">
         <div class="mb-4">
@@ -31,9 +25,9 @@ const shockPower = useSocketState<ShockPowerState>(`shockPower`, {
 
       <button
         class="btn"
-        @click="() => (shockPower.state.value!.isTesting = !shockPower.state.value!.isTesting)"
+        @click="() => (shockPower.state.value!.isTesting = true)"
       >
-        <span>Toggle Test </span>
+        <span>Start Test</span>
         <icon name="mdi:flash" size="25" />
       </button>
     </template>

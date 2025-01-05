@@ -114,7 +114,7 @@ async function onScheduleAddClick() {
           <div
             class="flex flex-row shadow-lg mb-2"
             :class="{
-              'animate-[pulse_1s_ease-in-out_infinite] border-2 border-warning rounded-lg p-4 ':
+              'animate-[pulse_1s_ease-in-out_infinite] border-2 border-info rounded-lg p-4 ':
                 DateTime.fromISO(schedule.alarmTime)
                   .diffNow()
                   .as(`milliseconds`) < 0,

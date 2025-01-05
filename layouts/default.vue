@@ -1,7 +1,15 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+const registeredSchedules = useSocketState<boolean>(`isShockActive`);
+</script>
 
 <template>
-  <div class="min-h-screen min-w-screen">
+  <div
+    class="min-h-screen min-w-screen"
+    :class="{
+      'animate-[pulse_1s_ease-in-out_infinite] border-2 border-warning':
+        registeredSchedules.state.value,
+    }"
+  >
     <!-- Sticky header -->
     <header class="w-full bg-base-100 shadow-lg">
       <nav class="navbar container mx-auto px-4">
