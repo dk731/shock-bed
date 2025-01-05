@@ -15,21 +15,23 @@ let isShockActive: SharedState<boolean>;
 
 async function doShockAnimation() {
   const lockGuard = await shockMutex.acquire();
-  isShockActive.state = true;
+  try {
+    isShockActive.state = true;
 
-  console.log("Starting shock animation");
+    console.log("Starting shock animation");
 
-  hvEnablePin.value = Level.High;
-  for (let i = 1; i <= 10; i++) {
-    shockOutputPin.setPwm(i * 10, i * 0.6);
-    await new Promise((resolve) => setTimeout(resolve, i * 125));
+    hvEnablePin.value = Level.High;
+    for (let i = 1; i <= 10; i++) {
+      shockOutputPin.setPwm(i * 10, i * 0.6);
+      await new Promise((resolve) => setTimeout(resolve, i * 125));
+    }
+
+    hvEnablePin.value = Level.Low;
+    shockOutputPin.clearPwm();
+    isShockActive.state = false;
+  } finally {
+    lockGuard();
   }
-
-  hvEnablePin.value = Level.Low;
-  shockOutputPin.clearPwm();
-
-  lockGuard();
-  isShockActive.state = false;
 }
 
 const scheduleTimeouts: Map<string, NodeJS.Timeout> = new Map();

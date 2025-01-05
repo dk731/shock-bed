@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   nuxt-app:
     image: docker.qwe.me/okee-tech/shock-bed-app:latest
