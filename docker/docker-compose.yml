@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  nuxt-app:
+    image: docker.qwe.me/okee-tech/delorean-web:latest
+    restart: unless-stopped
+    volumes:
+      - /dev:/dev
+    privileged: true # Needed for hardware access
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_SCHEDULE=0 0 * * *
