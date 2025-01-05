@@ -19,7 +19,7 @@ type MotorSharedState = {
   error?: string;
 };
 
-type ShockPower = {
+type ShockPowerState = {
   power: number;
   isTesting: boolean;
 };

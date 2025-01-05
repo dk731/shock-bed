@@ -1,80 +1,88 @@
 import hardwareConfig from "#utils/hardware-configuration";
+import { DateTime } from "luxon";
 import { SharedState } from "./2.socket-shared-state";
-import { Gpio, Mode } from "@okee-tech/rppal";
+import { Gpio, I2C, Level, Mode } from "@okee-tech/rppal";
 
 const gpio = new Gpio();
-const servoPins = hardwareConfig.servos.map((servo) => gpio.get(servo.pin));
-const motorPins = hardwareConfig.motors.map((motor) => gpio.get(motor.pin));
-servoPins.forEach((servo) => {
-  servo.mode = Mode.Output;
-  servo.value = 0;
-});
-motorPins.forEach((motor) => {
-  motor.mode = Mode.Output;
-  motor.value = 0;
-});
+const hvEnablePin = gpio.get(hardwareConfig.hvEnablePin);
+const shockOutputPin = gpio.get(hardwareConfig.shockOuputPin);
+const hvI2cPot = new I2C(hardwareConfig.i2cPotBus);
+hvEnablePin.mode = Mode.Output;
+shockOutputPin.mode = Mode.Output;
 
-function onServoUpdate(localState: SharedState<ServoSharedState>) {
-  const state = localState.state;
-  const servoPin = servoPins.find(
-    (servo) => `servo/${servo.pin}` === localState.stateId
-  )!;
-  const config = hardwareConfig.servos.find(
-    (servo) => `servo/${servo.pin}` === localState.stateId
-  );
+async function doShockAnimation() {
+  console.log("Starting shock animation");
 
-  if (!state) return console.error("State was not initialized");
-  if (!servoPin || !config) return (state.error = "Servo was not initialized");
-
-  if (!state.isEnabled) {
-    servoPin.clearPwm();
-    servoPin.value = 0;
-    return;
+  hvEnablePin.value = Level.High;
+  for (let i = 1; i <= 10; i++) {
+    shockOutputPin.setPwm(i * 10, i * 0.6);
+    await new Promise((resolve) => setTimeout(resolve, i * 125));
   }
 
-  const dutyRange = config.pwmDutyRange.max - config.pwmDutyRange.min;
-  const angleRange = config.angleRange.max - config.angleRange.min;
-  const dutyDuration =
-    dutyRange * (state.angle / angleRange) + config.pwmDutyRange.min;
-  const duty = dutyDuration / (1 / config.pwmFrequency);
-
-  console.log(
-    `Setting servo ${config.pin} to ${state.angle}°, ${Math.round(dutyDuration * 1e6)}us, ${Math.round(duty * 100)}% duty`
-  );
-  servoPin.setPwm(config.pwmFrequency, duty);
+  hvEnablePin.value = Level.Low;
+  shockOutputPin.clearPwm();
 }
 
-function onMotorUpdate(state: SharedState<MotorSharedState>) {
-  const motorPin = motorPins.find(
-    (motor) => `motor/${motor.pin}` === state.stateId
-  )!;
-  if (!state.state) return console.error("State was not initialized");
-  if (!motorPin) return console.error("Motor was not initialized");
+const scheduleTimeouts: Map<string, NodeJS.Timeout> = new Map();
+async function onScheduleUpdate(
+  originalState: SharedState<ScheduleState[]>,
+  state: ScheduleState[]
+) {
+  for (const [scheduleId, timeout] of scheduleTimeouts) {
+    if (state.some((schedule) => schedule.scheduleId === scheduleId)) continue;
 
-  console.log(`Setting motor ${state.stateId} to ${state.state.isEnabled}`);
-  motorPin.value = state.state.isEnabled ? 1 : 0;
+    console.log(`Clearing deleted schedule: ${scheduleId}`);
+    clearTimeout(timeout);
+    scheduleTimeouts.delete(scheduleId);
+  }
+
+  for (const schedule of state) {
+    if (scheduleTimeouts.has(schedule.scheduleId)) continue;
+
+    console.log(`Registering schedule: ${schedule.scheduleId}`);
+    const scheduleDelay = DateTime.fromISO(schedule.alarmTime)
+      .diffNow()
+      .as("milliseconds");
+
+    scheduleTimeouts.set(
+      schedule.scheduleId,
+      setTimeout(async () => {
+        console.log(`Executing schedule: ${schedule.scheduleId}`);
+        await doShockAnimation();
+
+        setTimeout(() => {
+          console.log(`Finishing scheduled shock: ${schedule.scheduleId}`);
+          originalState.state =
+            originalState.state?.filter(
+              (el) => el.scheduleId !== schedule.scheduleId
+            ) ?? [];
+        }, 1000);
+      }, scheduleDelay)
+    );
+  }
+}
+
+async function onShockPowerUpdate(state: ShockPowerState) {
+  const newPotValue = Math.round(state.power * 255) & 0xff;
+
+  console.log(`Setting pot value to ${newPotValue}`);
+  await hvI2cPot.write(hardwareConfig.i2cPotAddress, [0x00, newPotValue]);
 }
 
 async function hardwareRoutine() {
-  const sharedServos = hardwareConfig.servos.map((motor) => {
-    return SharedState.get<ServoSharedState>(`servo/${motor.pin}`, {
-      angle: 0,
-      isEnabled: false,
-    });
+  const registeredSchedules = SharedState.get<ScheduleState[]>(
+    `registeredSchedules`,
+    []
+  );
+  const shockPowerState = SharedState.get<ShockPowerState>(`shockPower`, {
+    power: 0.1,
+    isTesting: false,
   });
 
-  const sharedMotors = hardwareConfig.motors.map((servo) => {
-    return SharedState.get<MotorSharedState>(`motor/${servo.pin}`, {
-      isEnabled: false,
-    });
-  });
-
-  sharedServos.forEach((state) =>
-    state.on("update", () => onServoUpdate(state))
+  registeredSchedules.on("update", (newState) =>
+    onScheduleUpdate(registeredSchedules, newState)
   );
-  sharedMotors.forEach((state) =>
-    state.on("update", () => onMotorUpdate(state))
-  );
+  shockPowerState.on("update", (newState) => onShockPowerUpdate(newState));
 }
 
 export default defineNitroPlugin(hardwareRoutine);

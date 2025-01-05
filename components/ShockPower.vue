@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-const shockPower = useSocketState<ShockPower>(`shockPower`, {
+const shockPower = useSocketState<ShockPowerState>(`shockPower`, {
   power: 0.5,
   isTesting: false,
 });
