@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   ],
   app: {
     head: {
-      title: "DMC DeLorean",
+      title: "Shock Bed",
     },
   },
   imports: {

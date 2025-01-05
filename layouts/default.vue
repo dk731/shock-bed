@@ -6,7 +6,8 @@
     <header class="w-full bg-base-100 shadow-lg">
       <nav class="navbar container mx-auto px-4">
         <div class="flex-1">
-          <div>DeLorean</div>
+          <icon class="mr-4" name="mdi:electricity" size="40" />
+          <div>Shock Bed</div>
         </div>
       </nav>
     </header>

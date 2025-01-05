@@ -18,3 +18,13 @@ type MotorSharedState = {
 
   error?: string;
 };
+
+type ShockPower = {
+  power: number;
+  isTesting: boolean;
+};
+
+type ScheduleState = {
+  alarmTime: string;
+  scheduleId: string;
+};

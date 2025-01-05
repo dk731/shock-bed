@@ -1,26 +1,85 @@
 <script lang="ts" setup>
 import hardwareConfig from "#utils/hardware-configuration";
+import { DateTime, Duration } from "luxon";
+
+const registeredSchedules = useSocketState<ScheduleState[]>(
+  `registeredSchedules`,
+  [
+    {
+      scheduleId: "qwe",
+      alarmTime: DateTime.now().plus(Duration.fromMillis(10000)).toISO(),
+    },
+  ]
+);
+
+const schedules = computed({
+  get() {
+    return (
+      registeredSchedules.state.value?.map((el) => ({
+        ...el,
+        parsedTime: DateTime.fromISO(el.alarmTime),
+      })) || []
+    );
+  },
+  set(value: ScheduleState[]) {
+    // registeredSchedules.setState(value);
+  },
+});
+
+const currentTime = ref(DateTime.now());
+
+onMounted(() => setInterval(() => (currentTime.value = DateTime.now()), 100));
+
+async function onScheduleClick(scheduleId: string) {
+  registeredSchedules.state.value = registeredSchedules.state.value?.filter(
+    (el) => el.scheduleId !== scheduleId
+  );
+}
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-      <template v-for="(servo, i) in hardwareConfig.servos" :key="i">
+  <div class="flex flex-col p-4">
+    <ShockPower />
+    <Separator class="h-px my-8 w-full bg-base-300" />
+    <div class="text-center place-items-center">
+      <template v-for="(schedule, i) in schedules" :key="i">
         <div
-          class="flex flex-col mb-4 w-full border-solid border rounded-xl border-base-300"
+          class="flex flex-row shadow-lg"
+          :class="{
+            'animate-[pulse_1s_ease-in-out_infinite] border-2 border-warning rounded-lg p-4 ':
+              DateTime.fromISO(schedule.alarmTime)
+                .diffNow()
+                .as(`milliseconds`) < 0,
+          }"
         >
-          <div class="text-xl font-bold">Servo: {{ i + 1 }}</div>
-          <ServoController :config="servo" />
-        </div>
-      </template>
-    </div>
-    <div class="h-4" />
-
-    <div class="grid grid-cols-2 text-center place-items-center">
-      <template v-for="(motor, i) in hardwareConfig.motors" :key="i">
-        <div class="flex flex-col mb-2">
-          <div class="text-xl font-bold">Motor: {{ i + 1 }}</div>
-          <MotorController :config="motor" />
+          <div class="flex flex-col mb-2 p-4 rounded-lg mr-8">
+            <div class="text-xl font-bold mb-4">
+              Scheduled Time:
+              {{ DateTime.fromISO(schedule.alarmTime).toFormat("HH:mm") }}
+            </div>
+            <div class="text-lg font-bold">
+              Shock In:
+              {{
+                DateTime.fromISO(schedule.alarmTime)
+                  .diff(currentTime, [
+                    "hours",
+                    "minutes",
+                    "seconds",
+                    "milliseconds",
+                  ])
+                  .toHuman()
+                  .split(", ")
+                  .splice(0, 3)
+                  .join(", ")
+              }}
+            </div>
+          </div>
+          <button
+            class="btn"
+            @click="() => onScheduleClick(schedule.scheduleId)"
+          >
+            Cancel
+          </button>
         </div>
       </template>
     </div>
