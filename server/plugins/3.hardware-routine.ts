@@ -77,7 +77,7 @@ async function onShockPowerUpdate(
   originalState: SharedState<ShockPowerState>,
   state: ShockPowerState
 ) {
-  const newPotValue = Math.round(state.power * 255) & 0xff;
+  const newPotValue = Math.round((1 - state.power) * 255) & 0xff;
 
   console.log(`Setting pot value to ${newPotValue}`);
   await hvI2cPot.write(hardwareConfig.i2cPotAddress, [0x00, newPotValue]);
