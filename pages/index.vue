@@ -112,7 +112,7 @@ async function onScheduleAddClick() {
       <template v-if="schedules.length > 0">
         <template v-for="(schedule, i) in schedules" :key="i">
           <div
-            class="flex flex-row shadow-lg mb-2"
+            class="flex flex-row shadow-lg mb-2 box-border"
             :class="{
               'animate-[pulse_1s_ease-in-out_infinite] border-2 border-info rounded-lg p-4 ':
                 DateTime.fromISO(schedule.alarmTime)

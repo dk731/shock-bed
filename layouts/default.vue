@@ -4,7 +4,7 @@ const registeredSchedules = useSocketState<boolean>(`isShockActive`);
 
 <template>
   <div
-    class="min-h-screen min-w-screen"
+    class="min-h-screen min-w-screen box-border"
     :class="{
       'animate-[pulse_1s_ease-in-out_infinite] border-2 border-warning':
         registeredSchedules.state.value,
