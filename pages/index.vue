@@ -65,7 +65,8 @@ async function onScheduleAddClick() {
     <ShockPower />
     <Separator class="h-px my-8 w-full bg-base-300" />
     <div class="text-center place-items-center">
-      <div class="flex flex-row mb-8 shadow p-4">
+      <div class="flex flex-col mb-8 shadow p-4 flex-wrap">
+        <div class="mb-2">Schock In:</div>
         <NumberFieldRoot
           id="age"
           v-model="newShockScheduleMinutes.hours"
@@ -73,7 +74,6 @@ async function onScheduleAddClick() {
           :min="0"
           :default-value="5"
         >
-          <div class="mr-4">Schock In:</div>
           <div class="mt-1 flex items-center border rounded-md">
             <NumberFieldDecrement class="p-2 disabled:opacity-20">
               <icon name="mdi:minus" />
@@ -90,7 +90,7 @@ async function onScheduleAddClick() {
         <NumberFieldRoot
           id="age"
           v-model="newShockScheduleMinutes.minutes"
-          class="text-sm flex flex-row items-center mr-8"
+          class="text-sm flex flex-row items-center mb-4"
           :min="0"
           :default-value="5"
         >
