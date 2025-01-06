@@ -10,7 +10,9 @@ const shockOutputPin = gpio.get(hardwareConfig.shockOuputPin);
 const hvI2cPot = new I2C(hardwareConfig.i2cPotBus);
 hvEnablePin.mode = Mode.Output;
 shockOutputPin.mode = Mode.Output;
+
 const shockMutex = new Mutex();
+
 let isShockActive: SharedState<boolean>;
 
 async function doShockAnimation() {
@@ -50,10 +52,14 @@ async function onScheduleUpdate(
   for (const schedule of state) {
     if (scheduleTimeouts.has(schedule.scheduleId)) continue;
 
-    console.log(`Registering schedule: ${schedule.scheduleId}`);
-    const scheduleDelay = DateTime.fromISO(schedule.alarmTime)
-      .diffNow()
-      .as("milliseconds");
+    const scheduleDelay = Math.max(
+      DateTime.fromISO(schedule.alarmTime).diffNow().as("milliseconds"),
+      0
+    );
+
+    console.log(
+      `Registering schedule: ${schedule.scheduleId} with delay: ${scheduleDelay}`
+    );
 
     scheduleTimeouts.set(
       schedule.scheduleId,
@@ -73,6 +79,7 @@ async function onScheduleUpdate(
   }
 }
 
+let isTestingTriggered = false;
 async function onShockPowerUpdate(
   originalState: SharedState<ShockPowerState>,
   state: ShockPowerState
@@ -82,13 +89,14 @@ async function onShockPowerUpdate(
   console.log(`Setting pot value to ${newPotValue}`);
   await hvI2cPot.write(hardwareConfig.i2cPotAddress, [0x00, newPotValue]);
 
-  if (state.isTesting) {
+  if (state.isTesting && !isTestingTriggered) {
+    isTestingTriggered = true;
     console.log("Testing shock power");
     await doShockAnimation();
-    setTimeout(() => {
-      console.log("Finishing test shock");
-      originalState.state = { ...state, isTesting: false };
-    }, 1000);
+    isTestingTriggered = false;
+
+    console.log("Finishing test shock");
+    originalState.state = { ...state, isTesting: false };
   }
 }
 

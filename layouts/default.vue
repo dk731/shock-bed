@@ -1,5 +1,18 @@
 <script setup lang="ts">
 const registeredSchedules = useSocketState<boolean>(`isShockActive`);
+
+const { data, error } = await useFetch("/api/time-sync", {
+  method: "POST",
+  body: { timestamp: Date.now() },
+  server: false,
+});
+
+watchEffect(() => {
+  if (error.value)
+    return console.error("Error while synchronizing time: ", error.value);
+
+  if (data.value) return console.log("Synchronization result: ", data.value);
+});
 </script>
 
 <template>
